@@ -4,8 +4,26 @@
  * @LastEditTime: 2025-08-17 11:55:43
  * @FilePath: \undefinedc:\jiangrd3\MG-orphan\README.md
 -->
+<div>
+    <div>
+        使用Matlab产生数据集的代码从<a href='https://github.com/thomas-smith123/MG-orphan/tree/Dataset-Matlab?tab=readme-ov-file'>这里</a>进入。
+    </div>
+    <div>
+        使用python产生数据集的代码从<a href='https://github.com/thomas-smith123/MG-orphan/tree/main?tab=readme-ov-file'>这里</a>进入。
+    </div>
+</div>
 
-使用RadioML2018.01a进行调制方式识别。
+<div>
+    <h1>使用RadioML2018.01a进行调制方式识别。</h1>
+</div>
+
+<div>
+    由于<a href='https://www.deepsig.ai/datasets/'>RadioML2018.01a</a>数据集也不再被支持，因此，本项目也仅供参考。
+</div>
+
+<div>
+    我们所使用的数据集仅为MPSK、MQAM、MAPSK等，我们直接从RadioML2018.01a中将这几种调制方式提取出来，然后随机划分训练集和测试集，比例大约是9:1。然后固定随机数种子进行训练。训练结果如下：
+</div>
 
 <div>
     <div align="center">
