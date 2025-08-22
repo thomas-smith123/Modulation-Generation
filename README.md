@@ -1,7 +1,7 @@
 <!--
  * @Date: 2025-08-17 10:33:03
  * @LastEditors: thomas-smith123 thomas-smith@live.cn
- * @LastEditTime: 2025-08-17 11:55:43
+ * @LastEditTime: 2025-08-22 18:03:48
  * @FilePath: \undefinedc:\jiangrd3\MG-orphan\README.md
 -->
 <div>
@@ -50,3 +50,24 @@
 <img width=400 height=400 alt="confusion matrix snr -2.0db" src='result/confusion_matrix_snr_-2.0db.png'></img>
 <img width=400 height=400 alt="confusion matrix snr 0.0db" src='result/confusion_matrix_snr_0.0db.png'></img>
 <img width=400 height=400 alt="confusion matrix snr 2.0db" src='result/confusion_matrix_snr_2.0db.png'></img> -->
+
+<div>
+    对比了其他的一些方法，很多过拟合的，导致出现精度很糟糕的情况，有些方法没能复现。
+    文件树如下：
+    <ul>
+        <li>model  ---our model file
+        </li>
+        <li>model_compare  ---compared model
+        </li>
+        <li>runs
+            <ul>
+                <li>20250816-093022   ---test result and trained model
+                </li>
+            </ul>
+        </li>
+        <li>main_*.pth   ---compared model training
+        </li>
+        <li>test_*.pth   ---compared model testing
+        </li>
+    </ul>
+</div>
