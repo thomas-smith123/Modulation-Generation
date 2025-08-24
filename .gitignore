@@ -2,3 +2,6 @@ FM.m
 *.bin
 frft.m
 *.pyc
+*.csv
+keysight_signal_gen.asv
+keysight_signal_gen.asv

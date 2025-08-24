@@ -1,7 +1,8 @@
 clear all;
 close all;
 format long;
-rng(65);
+% rng(65);
+rng(randi(10000));
 %% defination
 fs = 64e9;
 resample_fs = 5e9;
@@ -11,10 +12,10 @@ window_length = resolution(2);
 overlap = 256+128;
 path = './data_gen';
 % snr_ = linspace(-24,-12,7)
-snr_ = [-15,-10,-5,0,5,10,15,20];
-number = 1000;
+snr_ = [-25,-20,-15,-10,-5,0,5,10,15,20];
+number = 500;
 check = true;
-thread = 2;
+thread = 3;
 %% gen
 i = 0;
 gen = keysight_signal_gen(fs,resample_fs,max_signal_per_frame,...
