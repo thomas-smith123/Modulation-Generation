@@ -189,8 +189,10 @@ classdef keysight_signal_gen
                         %iqdata = conj(iqdata);
                     
                     else % 脉冲相位调制
-                        pri = self.rand_uniform(2e-6,10e-6);
-                        pw = self.rand_uniform(0.4,0.8)*pri;
+                        pri = self.rand_uniform(1e-7,2e-6);
+                        pw = self.rand_uniform(0.2,0.5)*pri;
+                        % pri = self.rand_uniform(2e-6,10e-6);
+                        % pw = self.rand_uniform(0.4,0.8)*pri;
                         % bandwidth = 2e8;
                         bandwidth = self.resample_fs/2*self.rand_uniform(0.15,0.25)/5;
                         [iqdata, marker, numRepeats, chMap] = iqpulse('sampleRate', 64e9, 'PRI', pri, 'PW', pw, 'pulseShape', 'Raised Cosine',...
@@ -560,7 +562,12 @@ classdef keysight_signal_gen
                     for index=1:size(label,1)
                         sub=label(index,:);
                         time_duration = sub(2)-sub(1);
-                        freq_duration = sub(3);
+                        freq_duration = sub(3)+10/self.resolution(2);
+                        % if freq_duration<0.07
+                             % freq_duration=0.07;
+                        % end
+                        freq_duration = freq_duration * 1.1;
+                        freq_duration = max(freq_duration, 0.058);
                         cent_fre = sub(4);
                         % if cent_fre>0.5
                         %     y_start = 1-cent_fre;
@@ -571,22 +578,16 @@ classdef keysight_signal_gen
                             disp('error');
                         end
                         if self.check
-                            rectangle('position',[ceil(sub(1)*self.resolution(1)) ceil((((y_start)-0.5*freq_duration)*self.resolution(2)))-10 ...
-                                ceil(time_duration*self.resolution(1)) ceil(freq_duration*self.resolution(2))+20], 'EdgeColor', 'r');
+                            rectangle('position',[ceil(sub(1)*self.resolution(1)) ceil((((y_start)-0.5*freq_duration)*self.resolution(2))) ...
+                                ceil(time_duration*self.resolution(1)) ceil(freq_duration*self.resolution(2))], 'EdgeColor', 'r');
                             text(ceil(sub(1)*self.resolution(1)),ceil((((y_start)-0.5*freq_duration)*self.resolution(2)))-3,self.all_modulation(sub(5)));
                         end
 
                         label(index,1) = sub(1)+0.5*time_duration;
                         label(index,2) = y_start;
                         label(index,3) = time_duration;
-                        if freq_duration<0.07
-                            label(index,4) = freq_duration+35/self.resolution(2);
-                            if label(index,4)<0.07
-                                label(index,4)=0.07;
-                            end
-                        else
-                            label(index,4) = freq_duration+20/self.resolution(2);
-                        end
+                        label(index,4) = freq_duration;
+                        
                         % %% 恢复处理
                         % 
                         % tf_ = zeros(size(tf));
