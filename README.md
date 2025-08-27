@@ -1,7 +1,7 @@
 <!--
  * @Date: 2025-08-17 10:33:03
  * @LastEditors: thomas-smith123 thomas-smith@live.cn
- * @LastEditTime: 2025-08-24 16:05:34
+ * @LastEditTime: 2025-08-27 17:56:31
  * @FilePath: \MG-orphan\README.md
 -->
 
@@ -63,3 +63,6 @@ Basic code can be download form Keysight's website. Visit from <a href=https://w
 <div>main file: main_gen.m</div>
 <div>config file: keysight_signal_gen.m</div>
 
+# Notice
+目前的测试发现使用这套数据集难以收敛，原因有待排查。
+Current tests indicate that the model struggles to converge when trained on this dataset, and the underlying cause remains under investigation.
