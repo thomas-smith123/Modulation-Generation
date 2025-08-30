@@ -50,10 +50,10 @@ class SignalDataGen:
         "16APSK",# 11
         "32APSK",# 12
         "64APSK",# 13
-        "RadarPulse_Compressed",# 11
-        "NLFM",# 12
-        "ADSB",# 13
-        "Otherwise", #14
+        "RadarPulse_Compressed",# 15
+        "NLFM",# 16
+        "ADSB",# 17
+        "OFDM", #18
         "Zigbee",
         "LoRa",
     ]
@@ -68,18 +68,16 @@ class SignalDataGen:
         ) -> None:
         ## 训练样本数量&验证样本数量
         self.AllClass = self.default_class
-        self.sample_rate = 2.5e9
+        self.sample_rate = 5e9
         self.max_signal_frame = 1 #一帧最多5个信号
         self.train_num = train
         self.valid_num = valid
         self.num = self.train_num+self.valid_num
         ## 其他参数
         self.fft_size = fft_size #定义图像为正方形
-        ### num_iq_samples = fft_size * fft_size
         self.noverlap = self.fft_size // 8 #重叠点数
         self.overlap = fft_size-self.noverlap #步长
         self.nperseg = self.fft_size #窗长
-        ### 时域长度：窗长+（点数-1）*（窗长-重叠）
         self.num_iq_samples = (self.fft_size-1)*(self.noverlap)+self.fft_size
         self.label_map = {}
         for i,j in enumerate(self.default_class):
@@ -88,23 +86,15 @@ class SignalDataGen:
         inembed_p = ctypes.pointer(t)
         n = ctypes.c_int(fft_size)
         n_p = ctypes.pointer(n)
-
         onembed = ctypes.c_int*2 ## 数组
         onembed_p = onembed(fft_size,fft_size)
 
         self.plan = cf.cufftPlanMany(rank=1, n=n_p, inembed=inembed_p, istride=1, idist=self.noverlap,onembed=onembed_p, ostride=1, odist=fft_size, fft_type=cf.CUFFT_C2C, batch=fft_size)
         self.data_o_gpu = gpuarray.zeros((512,512),dtype=np.complex64)
-    # def gen(self):
-    #     for i in tqdm(range(self.train_num)):
-    #         signal = self.gen_signal()
-    #     pass
-    #     for i in tqdm(range(self.valid_num)):
-    #         signal = self.gen_signal()
+
     def checkFrequency(self,frequency_list,bandwidth_list,signal_parameter: SignalParameter):
-        ## 中频和带宽
-        ## 检查频率是否重叠
         for i,j in enumerate(frequency_list):
-            if np.abs(signal_parameter.center_frequency-j)<(bandwidth_list[i]/2+np.abs(signal_parameter.bandwidth/2)): #进入到其他信号带宽了
+            if np.abs(signal_parameter.center_frequency-j)<(bandwidth_list[i]/2+np.abs(signal_parameter.bandwidth/2)): 
                 if np.abs(j-signal_parameter.center_frequency)<bandwidth_list[i]/2 or np.abs(j-signal_parameter.center_frequency)<signal_parameter.bandwidth/2+0.01: #直接重合了
                     signal_parameter.center_frequency+=np.max((bandwidth_list[i],j))
                 else:
@@ -120,7 +110,6 @@ class SignalDataGen:
         return signal_parameter.center_frequency
         
     def genFrame(self,snr=0):
-        # 需要统计每个信号的频率啥的，避免重叠
         frequency_list = [] # 中心频率
         bandwidth_list = []
         description_list = []
@@ -144,37 +133,20 @@ class SignalDataGen:
             if i == "Frequency_HOP":
                 signal_parameter.center_frequency = np.random.uniform(-0.3,0.3)*self.sample_rate/2
                 signal_parameter.center_frequency = self.checkFrequency(frequency_list,bandwidth_list,signal_parameter)
-                # signal_parameter.start = np.random.uniform(0,0.3)*self.num_iq_samples/self.sample_rate
-                # signal_parameter.duration = np.random.uniform(0.3,0.7)*self.num_iq_samples/self.sample_rate
                 signal_parameter.bandwidth = np.random.uniform(0.1,0.2)*self.sample_rate/2
                 signal_parameter.num_symbol = np.random.randint(20,35)
                 signal_parameter()
                 signal = nFSK(signal_parameter,8)
             elif "FM" in i: #[FM LFM NLFM]
                 signal_parameter.center_frequency = self.checkFrequency(frequency_list,bandwidth_list,signal_parameter)
-                if i == "FM":
-                    signal_parameter.bandwidth = np.random.uniform(0.01,0.03)*self.sample_rate/2
-                    signal_parameter()
-                    signal = FM(signal_parameter)
-                elif i == "LFM":
+
+                if i == "LFM":
                     signal = LFM(signal_parameter)
                     signal_parameter()
                 elif i == "NLFM":
                     signal_parameter.bandwidth = (np.random.uniform(0.1,0.2))*self.sample_rate/2
                     signal_parameter()
                     signal = NLFM(signal_parameter)
-            elif i == "DSB":
-                signal_parameter.center_frequency = self.checkFrequency(frequency_list,bandwidth_list,signal_parameter)
-                signal_parameter.bandwidth = np.random.uniform(0.002,0.003)*self.sample_rate/2
-                signal_parameter()
-                signal = DSB(signal_parameter)
-            elif i == "AM":
-                signal_parameter.center_frequency = self.checkFrequency(frequency_list,bandwidth_list,signal_parameter)
-                signal_parameter.bandwidth = np.random.uniform(0.01,0.1)*self.sample_rate/2
-                signal_parameter.center_frequency = np.random.uniform(-0.3,0.3)*self.sample_rate # 限制一下带宽
-                signal_parameter()
-                signal = AM(signal_parameter)
-            ## 对FSK族信号
             elif "FSK" in i: # nFSK
                 n = int(i.split("FSK")[0])
                 signal_parameter.center_frequency = self.checkFrequency(frequency_list,bandwidth_list,signal_parameter)
@@ -184,7 +156,6 @@ class SignalDataGen:
                 # signal_parameter.duration = np.random.uniform(0.2, 0.8)*self.num_iq_samples*1/self.sample_rate
                 signal_parameter()
                 signal = nFSK(signal_parameter,n)
-            ## 对QAM族信号
             elif "QAM" in i: # nQAM
                 if i == "16QAM":
                     n = 16
@@ -197,7 +168,6 @@ class SignalDataGen:
                 signal_parameter.center_frequency = self.checkFrequency(frequency_list,bandwidth_list,signal_parameter)
                 signal_parameter()
                 signal = nQAM(signal_parameter,n)
-            ## 对APSK族信号
             elif "APSK" in i:
                 if i == "16APSK":
                     n = 16
@@ -210,7 +180,6 @@ class SignalDataGen:
                 signal_parameter.center_frequency = self.checkFrequency(frequency_list,bandwidth_list,signal_parameter)
                 signal_parameter()
                 signal = nAPSK(signal_parameter,n)
-            ## 对PSK族信号
             elif "PSK" in i:
                 if i == "4PSK":
                     n = 4
@@ -225,19 +194,12 @@ class SignalDataGen:
                 signal_parameter.center_frequency = self.checkFrequency(frequency_list,bandwidth_list,signal_parameter)
                 signal_parameter()
                 signal = nPSK(signal_parameter,n)
-            ## 对雷达信号
             elif "Radar" in i:
                 if "Compressed" in i:
                     signal = RADAR_Pulse_Compressed(signal_parameter,random.uniform(0.1,0.4))
                     signal_parameter.num_symbol = np.random.randint(5,10)
                     signal_parameter.center_frequency = self.checkFrequency(frequency_list,bandwidth_list,signal_parameter)
                     signal_parameter()
-                else:
-                    signal = RADAR_Pulse(signal_parameter)
-                    signal_parameter.num_symbol = np.random.randint(5,15)
-                    signal_parameter.center_frequency = self.checkFrequency(frequency_list,bandwidth_list,signal_parameter)
-                    signal_parameter()
-            ## 其他信号
             elif i == "ADSB":
                 signal_parameter.center_frequency = self.checkFrequency(frequency_list,bandwidth_list,signal_parameter)
                 # signal_parameter.samples_per_symbol = np.random.randint(3000,6000)
@@ -248,11 +210,8 @@ class SignalDataGen:
                 signal_parameter.bandwidth = np.random.uniform(0.05,0.15)*self.sample_rate/2
                 signal_parameter()
                 signal = Costas(signal_parameter)
-            elif i == "Frank":
-                signal_parameter.center_frequency = self.checkFrequency(frequency_list,bandwidth_list,signal_parameter)
-                signal_parameter()
-                signal = Frank(signal_parameter)
-            elif i == "Otherwise":
+
+            elif i == "OFDM":
                 # continue
                 signal_parameter.center_frequency = self.checkFrequency(frequency_list,bandwidth_list,signal_parameter)
                 signal_parameter()
@@ -270,14 +229,11 @@ class SignalDataGen:
             signal() ## 生成信号
             description_list.append(signal.signal_description) # 信号的描述
             self.iq_data += signal.iq_data
-        ##@todo 信号加噪
-        # snr = -20#np.random.uniform(0,15)
         self.iq_data.real = cpy.awgn(self.iq_data.real,snr_dB=snr)
         self.iq_data.imag = cpy.awgn(self.iq_data.imag,snr_dB=snr)
         return [self.iq_data,description_list]
     
-    def __yolo_label_gen__(self,signal_sample:list,snr,filename:str,seq:int,check:bool=False):## 主要看写txt有没有问题
-        ## filename为路径？ ##@todo 想一下
+    def __yolo_label_gen__(self,signal_sample:list,snr,filename:str,seq:int,check:bool=False):
         signal_ = signal_sample[0] ## 这个要转换成图片
         signal_description = signal_sample[1]
         f = open(filename+'labels/'+str(seq)+'_'+str(snr)+'.txt','w')
@@ -303,13 +259,11 @@ class SignalDataGen:
                 width = description.stop-description.start ## 稍微放松一下
                 height = np.abs(upper-lower)
                 
-                ## 防止出现负数的情况
                 if center_y > 1:
                     center_y = center_y - 1
                 if height < 0:
                     height = -height
                 
-                # 确保边界框在有效范围内
                 if center_y + height/2 > 1:
                     height = (1 - center_y) * 2
                 if center_y - height/2 < 0:
@@ -335,32 +289,18 @@ class SignalDataGen:
         tf = fftpack.fftshift(self.data_o_gpu.get(),1)
         if signal_description==None:
             tf = np.random.normal(0, np.abs(np.random.normal()+0.1), tf.shape)*np.random.uniform(0,100)
-            
         np.save(filename+'stft_complex/'+str(seq)+'_'+str(snr),tf.T)
-        # stft = Spectrogram(nperseg=self.nperseg, noverlap=self.noverlap, nfft=self.fft_size)
-        # tf=stft(signal_)
         if check:
             plt.imshow(np.abs(tf.T),cmap='viridis')
             # plt.pcolormesh(np.abs(tf),shading='gouraud')
             plt.savefig(filename+'check/'+str(seq)+'_'+str(snr)+'.png')
             plt.close()
         np.save(filename+'raw_complex/'+str(seq)+'_'+str(snr),signal_.T)
-        # normalize = Normalize(np.inf,flatten=True)
-        # tf=normalize(tf)
-        # result = np.zeros((self.fft_size,self.fft_size),dtype=np.int16)
-        # result = (1-tf)*255 # 
-        # result = result.astype(np.int16)
-        # fig = np.expand_dims(result,0)
-        # fig = np.repeat(fig,3,0)
-        # heatmapshow = cv2.normalize(tf, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+
         heatmapshow = NormMinandMax(np.abs(tf.T))
         heatmapshow = applyColorMap(heatmapshow,cmaps[random.randint(0,len(cmaps)-1)])
         heatmapshow.save(filename+'images/'+str(seq)+'_'+str(snr)+'.png')
-        
-        # heatmapshow = cv2.applyColorMap(heatmapshow, cv2.COLORMAP_JET)
-        # cv2.imwrite(filename+'images/'+str(seq)+'.jpg',heatmapshow)
-        
-        
+
     def __call__(self, snr_list:list,addr:str='DataSet', *args: Any, **kwds: Any) -> Any:
         if not os.path.exists(addr+'/check/'):
             os.mkdir(addr+'/check/')
@@ -373,8 +313,6 @@ class SignalDataGen:
         if not os.path.exists(addr+'/stft_complex/'):
             os.mkdir(addr+'/stft_complex/')
         cnt = 0
-        # pool = mul.Pool(len(snr_list))
-        # pool.map(self.__yolo_label_gen__,self.genFrame(snr),filename=addr+'/',seq=i+cnt,check=True)
         for snr in snr_list:
             pbar = tqdm(total=self.num,postfix='SNR:'+str(snr))
             for i in range(self.num):
