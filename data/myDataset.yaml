@@ -1,0 +1,10 @@
+
+train: ./DataSet99/train.txt  # 118287 images
+val: ./DataSet99/valid.txt  # 5000 images
+test: ./DataSet99/test.txt  # 20288 of 40670 images, submit to https://competitions.codalab.org/competitions/20794
+
+nc: 20
+names: [
+     "LFM","2FSK","Costas","Frequency_HOP","16QAM","64QAM","256QAM",
+     "4PSK","8PSK","16PSK","32PSK","16APSK","32APSK","64APSK",
+     "RadarPulse_Compressed","NLFM","ADSB","Otherwise","Zigbee","LoRa"]
